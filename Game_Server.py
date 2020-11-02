@@ -76,11 +76,6 @@ def handleclient(clientsocket,clientaddress):
 
 
 
-
-
-
-
-
 print('waits for player to connect')
 while 1:
 	(clientsocket, clientaddress) = s.accept()
