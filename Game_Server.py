@@ -7,9 +7,9 @@ TCP_IP = '127.0.0.1'
 TCP_PORT = 4000
 #Checks if client socket is created properly   
 try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind((TCP_IP,TCP_PORT))
-        s.listen(5)
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.bind((TCP_IP,TCP_PORT))
+	s.listen(5)
 except socket.error:
            print("Failed to create socket")
 def Calculate(num,n):
@@ -33,6 +33,7 @@ def Calculate(num,n):
 	return count_pos*10+count_amount
 def Commands(message,clientsocket,clientaddress):
 	if(message=="Game\r\n"):
+		clientsocket.send("Ready\r\n".encode())
 		Game(message,clientsocket,clientaddress)
 	elif(message=="End\r\n"):
 		print("End work with ",clientaddress)
@@ -40,28 +41,30 @@ def Commands(message,clientsocket,clientaddress):
 def Game(message,clientsocket,clientaddress):
 	#generate number to guess
 	num1 = random.randrange(1000, 10000)
-	while message == "Game\r\n":
-		clientsocket.send("Ready\r\n".encode())
+	while True:
 		try:
-		   n = clientsocket.recv(1024).decode()	
+			n = clientsocket.recv(1024).decode()	
+			if(n.isdigit()):
+				count=Calculate(num1,n)
+				if(count==44):
+				   clientsocket.send(str(count).encode())
+				   print("User has won.")
+				   message = clientsocket.recv(80).decode()
+				   Commands(message,clientsocket,clientaddress)
+				   break
+				else:
+				   clientsocket.send(str(count).encode())
+			else:
+				message=n
+				if(message=="Open number\r\n"):
+					clientsocket.send(str(num1).encode())
+					message = clientsocket.recv(80).decode()
+				Commands(message,clientsocket,clientaddress)
+				break
 		except ConnectionResetError:
 			print("Client closed connection forcibly")
 			clientsocket.close()
 			break
-		count=Calculate(num1,n)
-		if(count==44):
-		   clientsocket.send(str(count).encode())
-		   print("User has won.")
-		   message = clientsocket.recv(80).decode()
-		   Commands(message,clientsocket,clientaddress)
-		   break
-		else:
-			clientsocket.send(str(count).encode())
-		message = clientsocket.recv(80).decode()
-	if(message=="Open number\r\n"):
-		clientsocket.send(str(num1).encode())
-		message = clientsocket.recv(80).decode()
-	Commands(message,clientsocket,clientaddress)
 	
 
 
@@ -73,6 +76,11 @@ def handleclient(clientsocket,clientaddress):
 	clientsocket.send(welcomemessage.encode())
 	message = clientsocket.recv(1024).decode()
 	Commands(message,clientsocket,clientaddress)
+
+
+
+
+
 
 
 
