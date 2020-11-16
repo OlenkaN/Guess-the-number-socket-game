@@ -1,8 +1,12 @@
 import random 
 import socket
 import threading
+import datetime
+import msvcrt
 
-
+info = open("info_server2.txt", 'a')
+info.write('%-15s' %'New game'+datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")+"\n")
+info.close()
 TCP_IP = '127.0.0.1'
 TCP_PORT = 4000
 #Checks if client socket is created properly   
@@ -31,16 +35,33 @@ def Calculate(num,n):
 		else:
 			continue
 	return count_pos*10+count_amount
-def Commands(message,clientsocket,clientaddress):
+def Commands(message,clientsocket,clientaddress,info1):
 	if(message=="Game\r\n"):
 		clientsocket.send("Ready\r\n".encode())
-		Game(message,clientsocket,clientaddress)
+		info1.write('%-15s' %'Ready'+datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")+"\t"+str(clientaddress)+"\n")
+		Game(message,clientsocket,clientaddress,info1)
 	elif(message=="End\r\n"):
 		print("End work with ",clientaddress)
 		clientsocket.close()
-def Game(message,clientsocket,clientaddress):
+def num():
+	mode=input("Choose entering numbers  by hands(1) or random_normal(2) or:random_Gauss(3) ")
+	if(mode=='1'):
+		num = str(input("Enter the 4 digit number: "))
+	elif(mode=='2'):
+		num=random.randrange(1000, 10000)
+	else:
+		mu=float(input("Choose mu from 1000 to 9999: "))
+		minimum = min(mu-1000,9999-mu)
+		print("Choose sigma less than",minimum)
+		sigma=float(input())
+		num=0
+		while(not(num>=1000 and num<10000)):
+			num=int(random.gauss(mu,sigma))
+	return str(num)
+
+def Game(message,clientsocket,clientaddress,info1):
 	#generate number to guess
-	num1 = random.randrange(1000, 10000)
+	num1 = num()
 	while True:
 		try:
 			n = clientsocket.recv(1024).decode()	
@@ -48,18 +69,21 @@ def Game(message,clientsocket,clientaddress):
 				count=Calculate(num1,n)
 				if(count==44):
 				   clientsocket.send(str(count).encode())
+				   info1.write('%-15s' %str(count)+datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")+"\t"+str(clientaddress)+"\n")
 				   print("User has won.")
 				   message = clientsocket.recv(80).decode()
-				   Commands(message,clientsocket,clientaddress)
+				   Commands(message,clientsocket,clientaddress,info1)
 				   break
 				else:
 				   clientsocket.send(str(count).encode())
+				   info1.write('%-15s' % str(count)+datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")+"\t"+str(clientaddress)+"\n")
 			else:
 				message=n
 				if(message=="Open number\r\n"):
 					clientsocket.send(str(num1).encode())
+					info1.write('%-15s' %str(num1)+datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")+"\t"+str(clientaddress)+"\n")
 					message = clientsocket.recv(80).decode()
-				Commands(message,clientsocket,clientaddress)
+				Commands(message,clientsocket,clientaddress,info1)
 				break
 		except ConnectionResetError:
 			print("Client closed connection forcibly")
@@ -69,13 +93,16 @@ def Game(message,clientsocket,clientaddress):
 
 
 def handleclient(clientsocket,clientaddress):
+	info1 = open("info_server2.txt", 'a')
 	# Receive the client's greeting
 	clientgreeting = clientsocket.recv(1024).decode()
 	# Send the welcome message to the client
 	welcomemessage = "Greetings\r\n"
 	clientsocket.send(welcomemessage.encode())
+	info1.write('%-15s' %'Greetings'+datetime.datetime.now().strftime("%H:%M:%S %d-%m-%Y")+"\t"+str(clientaddress)+"\n")
 	message = clientsocket.recv(1024).decode()
-	Commands(message,clientsocket,clientaddress)
+	Commands(message,clientsocket,clientaddress,info1)
+	info1.close()
 
 
 
